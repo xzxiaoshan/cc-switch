@@ -102,7 +102,24 @@ pub async fn discover_available_skills(
     let repos = app_state.db.get_skill_repos().map_err(|e| e.to_string())?;
     service
         .0
-        .discover_available(repos)
+        .discover_available(repos, None)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// 发现可安装的 Skills（仅指定仓库）
+#[tauri::command]
+pub async fn discover_available_skills_for_repo(
+    owner: String,
+    name: String,
+    service: State<'_, SkillServiceState>,
+    app_state: State<'_, AppState>,
+) -> Result<Vec<DiscoverableSkill>, String> {
+    let repos = app_state.db.get_skill_repos().map_err(|e| e.to_string())?;
+    let target_repo = format!("{}/{}", owner, name);
+    service
+        .0
+        .discover_available(repos, Some(&target_repo))
         .await
         .map_err(|e| e.to_string())
 }
@@ -159,7 +176,7 @@ pub async fn install_skill_for_app(
     let repos = app_state.db.get_skill_repos().map_err(|e| e.to_string())?;
     let skills = service
         .0
-        .discover_available(repos)
+        .discover_available(repos, None)
         .await
         .map_err(|e| e.to_string())?;
 

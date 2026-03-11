@@ -964,14 +964,27 @@ impl SkillService {
     // ========== 发现功能（保留原有逻辑）==========
 
     /// 列出所有可发现的技能（从仓库获取）
+    ///
+    /// 参数：
+    /// - repos: 仓库列表
+    /// - target_repo: 可选，指定只获取某个仓库的技能（格式："owner/name"）
     pub async fn discover_available(
         &self,
         repos: Vec<SkillRepo>,
+        target_repo: Option<&str>,
     ) -> Result<Vec<DiscoverableSkill>> {
         let mut skills = Vec::new();
 
         // 仅使用启用的仓库
-        let enabled_repos: Vec<SkillRepo> = repos.into_iter().filter(|repo| repo.enabled).collect();
+        let mut enabled_repos: Vec<SkillRepo> = repos.into_iter().filter(|repo| repo.enabled).collect();
+
+        // 如果指定了目标仓库，只处理该仓库
+        if let Some(target) = target_repo {
+            enabled_repos.retain(|repo| {
+                let repo_key = format!("{}/{}", repo.owner, repo.name);
+                repo_key == target
+            });
+        }
 
         let fetch_tasks = enabled_repos
             .iter()
@@ -983,7 +996,7 @@ impl SkillService {
         for (repo, result) in enabled_repos.into_iter().zip(results.into_iter()) {
             match result {
                 Ok(repo_skills) => skills.extend(repo_skills),
-                Err(e) => log::warn!("获取仓库 {}/{} 技能失败: {}", repo.owner, repo.name, e),
+                Err(e) => log::warn!("获取仓库 {}/{} 技能失败：{}", repo.owner, repo.name, e),
             }
         }
 
@@ -1001,7 +1014,7 @@ impl SkillService {
         db: &Arc<Database>,
     ) -> Result<Vec<Skill>> {
         // 获取可发现的技能
-        let discoverable = self.discover_available(repos).await?;
+        let discoverable = self.discover_available(repos, None).await?;
 
         // 获取已安装的技能
         let installed = db.get_all_installed_skills()?;

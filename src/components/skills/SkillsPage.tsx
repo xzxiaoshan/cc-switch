@@ -20,6 +20,7 @@ import {
   useSkillRepos,
   useAddSkillRepo,
   useRemoveSkillRepo,
+  useDiscoverableSkillsForRepo,
 } from "@/hooks/useSkills";
 import type { AppId } from "@/lib/api/types";
 import type { DiscoverableSkill, SkillRepo } from "@/lib/api/skills";
@@ -65,6 +66,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
     const installMutation = useInstallSkill();
     const addRepoMutation = useAddSkillRepo();
     const removeRepoMutation = useRemoveSkillRepo();
+    const discoverableForRepoMutation = useDiscoverableSkillsForRepo();
 
     // 已安装的 skill key 集合（使用 directory + repoOwner + repoName 组合判断）
     const installedKeys = useMemo(() => {
@@ -164,15 +166,12 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
     const handleAddRepo = async (repo: SkillRepo) => {
       try {
         await addRepoMutation.mutateAsync(repo);
-        // Await discovery so we can report the real count
-        const { data: freshSkills } = await refetchDiscoverable();
-        const count =
-          freshSkills?.filter(
-            (s) =>
-              s.repoOwner === repo.owner &&
-              s.repoName === repo.name &&
-              (s.repoBranch || "main") === (repo.branch || "main"),
-          ).length ?? 0;
+        // 仅发现当前添加的仓库的技能
+        const freshSkills = await discoverableForRepoMutation.mutateAsync({
+          owner: repo.owner,
+          name: repo.name,
+        });
+        const count = freshSkills?.length ?? 0;
         toast.success(
           t("skills.repo.addSuccess", {
             owner: repo.owner,

@@ -112,6 +112,14 @@ export const skillsApi = {
     return await invoke("discover_available_skills");
   },
 
+  /** 发现可安装的 Skills（仅指定仓库） */
+  async discoverAvailableForRepo(
+    owner: string,
+    name: string,
+  ): Promise<DiscoverableSkill[]> {
+    return await invoke("discover_available_skills_for_repo", { owner, name });
+  },
+
   // ========== 兼容旧 API ==========
 
   /** 获取技能列表（兼容旧 API） */

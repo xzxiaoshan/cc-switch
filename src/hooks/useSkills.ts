@@ -28,6 +28,17 @@ export function useDiscoverableSkills() {
 }
 
 /**
+ * 发现可安装的 Skills（仅指定仓库）
+ * 用于添加新仓库后仅刷新该仓库的技能
+ */
+export function useDiscoverableSkillsForRepo() {
+  return useMutation({
+    mutationFn: ({ owner, name }: { owner: string; name: string }) =>
+      skillsApi.discoverAvailableForRepo(owner, name),
+  });
+}
+
+/**
  * 安装 Skill
  */
 export function useInstallSkill() {
